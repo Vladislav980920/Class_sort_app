@@ -1,0 +1,22 @@
+
+ Main.java                    // Точка входа, главный цикл (№4 Нуар)
+ model/
+   ├── User.java               // Класс сущности с Builder (№1 Матусевич)
+   └── UserValidator.java      // Валидация данных User (№1 Матусевич)
+ strategy/
+  ├── SortingStrategy.java    // Интерфейс стратегии (№2 Emil)
+  ├── NameSort.java           // Сортировка по имени
+  ├── EmailSort.java          // Сортировка по почте
+  └── PasswordLengthSort.java // Сортировка по длине пароля
+ data/
+   ├── DataInputStrategy.java  // Интерфейс для ввода данных (№3 Вадим)
+   ├── ManualInputStrategy.java
+   ├── RandomInputStrategy.java
+   ├── FileInputStrategy.java
+   └── UserDataGenerator.java  // Генератор тестовых пользователей
+ service/
+   ├── SortingService.java     // Сервис сортировки (№4 Нуар)
+   └── UserInputService.java   // Сервис для работы с вводом
+ util/
+    ├── FileUtils.java          // Утилиты для работы с файлами (№3 Вадим)
+    └── ValidationUtils.java    // Общие утилиты валидации
