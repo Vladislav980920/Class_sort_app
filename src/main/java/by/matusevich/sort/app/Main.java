@@ -7,6 +7,7 @@ import by.matusevich.sort.app.service.SortingService;
 import by.matusevich.sort.app.service.UserInputService;
 import by.matusevich.sort.app.strategy.*;
 import by.matusevich.sort.app.util.FileUtils;
+import by.matusevich.sort.app.util.RandomGeneratorUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,51 +19,37 @@ public class Main {
         int operation;
 
         while (true) {
-            operation = input.readInt("""
-                   \s
-                    === МЕНЮ ===
-                    1 - Заполнение из файла
-                    2 - Заполнение рандом
-                    3 - Заполнение вручную
-                    4 - Список пользователей
-                    5 - Сортировка
-                    0 - Выход из программы
-                    Выбор:\s""");
-
-            if (operation == 0) {
-                input.close();
-                System.out.println("Программа завершена");
+            operation = input.readInt("Выберите операцию\n1-Заполнение из файла\n2-Заполнение рандомом\n3-Заполнение вручную\n4-список пользователей\n5-Сортировка\n0-Выход из программы\n");
+            if (operation == 0)
                 break;
             }
 
             switch (operation) {
                 case 1:
-                    String filePath = input.readString("Введите путь к файлу: ");
-                    List<String[]> lines = FileUtils.readAndValidateFile(filePath);
-                    int addedCount = 0;
-                    for (String[] parts : lines) {
-                        try {
-                            User user = User.builder()
-                                    .setName(parts[0])
-                                    .setPassword(parts[1])
-                                    .setEmail(parts[2])
-                                    .build();
-                            userList.add(user);
-                            addedCount++;
-                            System.out.println("✓ Пользователь " + user.getName() + " добавлен");
-                        } catch (Exception e) {
-                            System.out.println("✗ Ошибка при создании пользователя: " + e.getMessage());
-                        }
+                    List<String[]> lines = FileUtils.readAndValidateFile("Указать путь файла");
+                    for(String[] parts: lines){
+                        User user = User.builder()
+                                .setName(parts[0])
+                                .setPassword(parts[1])
+                                .setEmail(parts[2])
+                                .build();
+                        userList.add(user);
+                        System.out.println("Пользователь " + user.getName() + " добавлен");
                     }
                     System.out.println("Загружено " + addedCount + " пользователей из файла");
                     break;
 
                 case 2:
-                    int count = input.readInt("Сколько пользователей сгенерировать? ");
-                    RandomInputStrategy randomStrategy = new RandomInputStrategy(new UserDataGenerator());
-                    List<User> generatedUsers = randomStrategy.generateUsers(count);
-                    userList.addAll(generatedUsers);
-                    System.out.println("✓ Добавлено " + generatedUsers.size() + " случайных пользователей");
+                    String nameRand = RandomGeneratorUtils.generateName();
+                    String passwordRand = RandomGeneratorUtils.generatePassword();
+                    String emailRand = RandomGeneratorUtils.generateEmail();
+                    User userRand = User.builder()
+                            .setName(nameRand)
+                            .setPassword(passwordRand)
+                            .setEmail(emailRand)
+                            .build();
+                    userList.add(userRand);
+                    System.out.println("Пользователь " + userRand.getName() + " сгенерирован");
                     break;
 
                 case 3:
@@ -97,9 +84,9 @@ public class Main {
                                 .setEmail(email)
                                 .build();
                         userList.add(user);
-                        System.out.println("✓ Пользователь " + user.getName() + " создан");
-                    } catch (Exception e) {
-                        System.out.println("✗ Ошибка создания пользователя: " + e.getMessage());
+                        System.out.println(user.getName() + " создан");
+                    } else {
+                        UserValidator.validateUser(user);
                     }
                     break;
 
@@ -122,54 +109,46 @@ public class Main {
                 case 5:
                     if (userList.isEmpty()) {
                         System.out.println("Сортировать нечего");
-                    } else {
-                        int fieldChoice = input.readInt("""
-                                Выберите поле для сортировки:
-                                1 - По имени
-                                2 - По паролю (лексикографически)
-                                3 - По длине пароля
-                                4 - По почте
-                                Выбор:\s""");
-
-                        int directionChoice = input.readInt("""
-                                Выберите направление:
-                                1 - По возрастанию
-                                2 - По убыванию
-                                Выбор:\s""");
-
-                        SortingService sortingService = new SortingService();
-
-                        switch (fieldChoice) {
+                    else {
+                        int typeOfStrategy;
+                        SortingService service = new SortingService();
+                        int typeOfSort = input.readInt("Выберите способ сортировки\n1-По имени \n2-По паролю \n3-По почте \n");
+                        switch (typeOfSort) {
                             case 1:
-                                if (directionChoice == 1) {
-                                    sortingService.setStrategy(new FirstNameByAscStrategy());
-                                } else {
-                                    sortingService.setStrategy(new FirstNameByDescStrategy());
+                                typeOfStrategy = input.readInt("1-По возрастанию \n2-По убыванию\n");
+                                switch (typeOfStrategy){
+                                    case 1:
+                                        service.setStrategy(new PasswordLengthByAscStrategy());
+                                        service.insertionSort(userList);
+                                        break;
+                                    case 2:
+                                        service.setStrategy(new PasswordLengthByDescStrategy());
+                                        service.insertionSort(userList);
                                 }
                                 break;
                             case 2:
-                                if (directionChoice == 1) {
-                                    sortingService.setStrategy(new PasswordByAscStrategy());
-                                } else {
-                                    sortingService.setStrategy(new PasswordByDescStrategy());
+                                typeOfStrategy = input.readInt("1-По возрастанию \n2-По убыванию\n");
+                                switch (typeOfStrategy){
+                                    case 1:
+                                        service.setStrategy(new EmailByAscStrategy());
+                                        service.insertionSort(userList);
+                                        break;
+                                    case 2:
+                                        service.setStrategy(new EmailByDescStrategy());
+                                        service.insertionSort(userList);
                                 }
                                 break;
                             case 3:
-                                if (directionChoice == 1) {
-                                    sortingService.setStrategy(new PasswordLengthByAscStrategy());
-                                } else {
-                                    sortingService.setStrategy(new PasswordLengthByDescStrategy());
+                                typeOfStrategy = input.readInt("1-По возрастанию \n2-По убыванию\n");
+                                switch (typeOfStrategy){
+                                    case 1:
+                                        service.setStrategy(new FirstNameByAscStrategy());
+                                        service.insertionSort(userList);
+                                        break;
+                                    case 2:
+                                        service.setStrategy(new FirstNameByDescStrategy());
+                                        service.insertionSort(userList);
                                 }
-                                break;
-                            case 4:
-                                if (directionChoice == 1) {
-                                    sortingService.setStrategy(new EmailByAscStrategy());
-                                } else {
-                                    sortingService.setStrategy(new EmailByDescStrategy());
-                                }
-                                break;
-                            default:
-                                System.out.println("Неверный выбор поля!");
                                 break;
                         }
 
