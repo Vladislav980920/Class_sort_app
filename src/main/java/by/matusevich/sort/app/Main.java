@@ -26,6 +26,8 @@ public class Main {
                     3 - Заполнение вручную
                     4 - Список пользователей
                     5 - Сортировка
+                    6 - Статистика
+                    7 - Очистить список
                     0 - Выход из программы
                     Выбор:\s""");
 
@@ -42,6 +44,8 @@ public class Main {
                     int addedCount = 0;
                     for (String[] parts : lines) {
                         try {
+                            UserValidator.validateBeforeBuild(parts[0], parts[1], parts[2]);
+
                             User user = User.builder()
                                     .setName(parts[0])
                                     .setPassword(parts[1])
@@ -50,6 +54,8 @@ public class Main {
                             userList.add(user);
                             addedCount++;
                             System.out.println("✓ Пользователь " + user.getName() + " добавлен");
+                        } catch (IllegalArgumentException e) {
+                            System.out.println("✗ Ошибка валидации: " + e.getMessage());
                         } catch (Exception e) {
                             System.out.println("✗ Ошибка при создании пользователя: " + e.getMessage());
                         }
@@ -61,8 +67,22 @@ public class Main {
                     int count = input.readInt("Сколько пользователей сгенерировать? ");
                     RandomInputStrategy randomStrategy = new RandomInputStrategy(new UserDataGenerator());
                     List<User> generatedUsers = randomStrategy.generateUsers(count);
-                    userList.addAll(generatedUsers);
-                    System.out.println("✓ Добавлено " + generatedUsers.size() + " случайных пользователей");
+
+                    int validCount = 0;
+                    for (User user : generatedUsers) {
+                        try {
+                            UserValidator.validateUser(user);
+                            userList.add(user);
+                            validCount++;
+                        } catch (IllegalArgumentException e) {
+                            System.out.println("✗ Сгенерирован некорректный пользователь: " + e.getMessage());
+                        }
+                    }
+
+                    System.out.println("✓ Добавлено " + validCount + " случайных пользователей");
+                    if (validCount < generatedUsers.size()) {
+                        System.out.println("⚠ Пропущено " + (generatedUsers.size() - validCount) + " некорректных записей");
+                    }
                     break;
 
                 case 3:
@@ -108,13 +128,16 @@ public class Main {
                         System.out.println("Список пользователей пуст");
                     } else {
                         System.out.println("\n=== СПИСОК ПОЛЬЗОВАТЕЛЕЙ (" + userList.size() + ") ===");
+                        System.out.println("№  | Имя                | Email                          | Пароль");
+                        System.out.println("---|--------------------|--------------------------------|--------");
+
                         for (int i = 0; i < userList.size(); i++) {
                             User u = userList.get(i);
-                            System.out.printf("%d. Имя: %-15s | Email: %-25s | Пароль: %s%n",
+                            System.out.printf("%-3d| %-18s | %-30s | %s%n",
                                     i + 1,
-                                    u.getName(),
-                                    u.getEmail(),
-                                    "*".repeat(u.getPassword().length()));
+                                    truncate(u.getName(), 18),
+                                    truncate(u.getEmail(), 30),
+                                    "*".repeat(Math.min(u.getPassword().length(), 10)));
                         }
                     }
                     break;
@@ -123,6 +146,8 @@ public class Main {
                     if (userList.isEmpty()) {
                         System.out.println("Сортировать нечего");
                     } else {
+                        List<User> beforeSort = new ArrayList<>(userList);
+
                         int fieldChoice = input.readInt("""
                                 Выберите поле для сортировки:
                                 1 - По имени
@@ -139,53 +164,127 @@ public class Main {
 
                         SortingService sortingService = new SortingService();
 
-                        switch (fieldChoice) {
-                            case 1:
-                                if (directionChoice == 1) {
-                                    sortingService.setStrategy(new FirstNameByAscStrategy());
-                                } else {
-                                    sortingService.setStrategy(new FirstNameByDescStrategy());
-                                }
-                                break;
-                            case 2:
-                                if (directionChoice == 1) {
-                                    sortingService.setStrategy(new PasswordByAscStrategy());
-                                } else {
-                                    sortingService.setStrategy(new PasswordByDescStrategy());
-                                }
-                                break;
-                            case 3:
-                                if (directionChoice == 1) {
-                                    sortingService.setStrategy(new PasswordLengthByAscStrategy());
-                                } else {
-                                    sortingService.setStrategy(new PasswordLengthByDescStrategy());
-                                }
-                                break;
-                            case 4:
-                                if (directionChoice == 1) {
-                                    sortingService.setStrategy(new EmailByAscStrategy());
-                                } else {
-                                    sortingService.setStrategy(new EmailByDescStrategy());
-                                }
-                                break;
-                            default:
-                                System.out.println("Неверный выбор поля!");
-                                break;
-                        }
+                        try {
+                            switch (fieldChoice) {
+                                case 1:
+                                    if (directionChoice == 1) {
+                                        sortingService.setStrategy(new FirstNameByAscStrategy());
+                                    } else {
+                                        sortingService.setStrategy(new FirstNameByDescStrategy());
+                                    }
+                                    break;
+                                case 2:
+                                    if (directionChoice == 1) {
+                                        sortingService.setStrategy(new PasswordByAscStrategy());
+                                    } else {
+                                        sortingService.setStrategy(new PasswordByDescStrategy());
+                                    }
+                                    break;
+                                case 3:
+                                    if (directionChoice == 1) {
+                                        sortingService.setStrategy(new PasswordLengthByAscStrategy());
+                                    } else {
+                                        sortingService.setStrategy(new PasswordLengthByDescStrategy());
+                                    }
+                                    break;
+                                case 4:
+                                    if (directionChoice == 1) {
+                                        sortingService.setStrategy(new EmailByAscStrategy());
+                                    } else {
+                                        sortingService.setStrategy(new EmailByDescStrategy());
+                                    }
+                                    break;
+                                default:
+                                    System.out.println("Неверный выбор поля!");
+                                    break;
+                            }
 
-                        userList = sortingService.insertionSort(userList);
-                        System.out.println("✓ Список отсортирован!");
+                            userList = sortingService.insertionSort(userList);
 
-                        System.out.println("Первые 20 элементов после сортировки:");
-                        for (int i = 0; i < Math.min(20, userList.size()); i++) {
-                            System.out.println((i + 1) + ". " + userList.get(i));
+                            System.out.println("\n✓ Список отсортирован!");
+
+                            System.out.println("\nПервые 10 элементов после сортировки:");
+                            for (int i = 0; i < Math.min(10, userList.size()); i++) {
+                                User u = userList.get(i);
+                                String value;
+                                switch (fieldChoice) {
+                                    case 1: value = "Имя: " + u.getName(); break;
+                                    case 2: value = "Пароль: " + u.getPassword(); break;
+                                    case 3: value = "Длина пароля: " + u.getPassword().length(); break;
+                                    case 4: value = "Email: " + u.getEmail(); break;
+                                    default: value = u.toString();
+                                }
+                                System.out.printf("%3d. %s%n", i + 1, value);
+                            }
+
+                        } catch (Exception e) {
+                            System.out.println("✗ Ошибка при сортировке: " + e.getMessage());
                         }
                     }
+                    break;
+
+                case 6:
+                    if (userList.isEmpty()) {
+                        System.out.println("Нет данных для статистики");
+                    } else {
+                        printStatistics(userList);
+                    }
+                    break;
+
+                case 7:
+                    userList.clear();
+                    System.out.println("✓ Список очищен");
                     break;
 
                 default:
                     System.out.println("Неверный выбор! Попробуйте снова.");
             }
         }
+    }
+
+    private static String truncate(String str, int length) {
+        if (str == null) return "";
+        if (str.length() <= length) return str;
+        return str.substring(0, length - 3) + "...";
+    }
+
+    private static void printStatistics(List<User> users) {
+        System.out.println("\n=== СТАТИСТИКА ===");
+        System.out.println("Всего пользователей: " + users.size());
+
+        long uniqueNames = users.stream()
+                .map(User::getName)
+                .distinct()
+                .count();
+        System.out.println("Уникальных имен: " + uniqueNames);
+
+        double avgPasswordLength = users.stream()
+                .mapToInt(u -> u.getPassword().length())
+                .average()
+                .orElse(0);
+        System.out.printf("Средняя длина пароля: %.2f%n", avgPasswordLength);
+
+        System.out.println("\nПочтовые домены:");
+        users.stream()
+                .map(u -> u.getEmail().substring(u.getEmail().indexOf("@") + 1))
+                .distinct()
+                .sorted()
+                .forEach(domain -> {
+                    long count = users.stream()
+                            .filter(u -> u.getEmail().endsWith(domain))
+                            .count();
+                    System.out.printf("  %-15s: %d пользователей%n", domain, count);
+                });
+
+        System.out.println("\nСамое популярное имя:");
+        users.stream()
+                .map(User::getName)
+                .collect(java.util.stream.Collectors.groupingBy(
+                        name -> name,
+                        java.util.stream.Collectors.counting()))
+                .entrySet().stream()
+                .max(java.util.Map.Entry.comparingByValue())
+                .ifPresent(entry ->
+                        System.out.printf("  %s (%d раз)%n", entry.getKey(), entry.getValue()));
     }
 }
