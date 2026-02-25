@@ -14,18 +14,17 @@ public class SortingService {
     }
 
     public List<User> insertionSort(List<User> users) {
-        List<User> sortedList = new ArrayList<>(users);
-
-        for (int i = 1; i < sortedList.size(); i++) {
-            User key = sortedList.get(i);
+        
+        for (int i = 1; i < users.size(); i++) {
+            User key = users.get(i);
             int j = i - 1;
-            while (j >= 0 && strategy.compare(sortedList.get(j), key) > 0) {
-                sortedList.set(j + 1, sortedList.get(j));
+            while (j >= 0 && strategy.compare(users.get(j), key) > 0) {
+                users.set(j + 1, users.get(j));
                 j--;
             }
-            sortedList.set(j + 1, key);
+            users.set(j + 1, key);
         }
 
-        return sortedList;
+        return users;
     }
 }
